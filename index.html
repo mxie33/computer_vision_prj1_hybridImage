@@ -1,0 +1,832 @@
+<html>
+<head>
+<title>Computer Vision Project</title>
+<link href='http://fonts.googleapis.com/css?family=Nunito:300|Crimson+Text|Droid+Sans+Mono' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" title="Default" href="styles/github.css">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>  
+
+<link rel="stylesheet" href="highlighting/styles/default.css">
+<script src="highlighting/highlight.pack.js"></script>
+
+<style type="text/css">
+body {
+	margin: 0px;
+	width: 100%;
+	font-family: 'Crimson Text', serif;
+	font-size: 20px;
+	background: #fcfcfc;
+}
+h1 {
+	font-family: 'Nunito', sans-serif;
+	font-weight: normal;
+	font-size: 28px;
+	margin: 25px 0px 0px 0px;
+	text-transform: lowercase;
+
+}
+
+h2 {
+	font-family: 'Nunito', sans-serif;
+	font-weight: normal;
+	font-size: 32px;
+	margin: 15px 0px 35px 0px;
+	color: #333;	
+	word-spacing: 3px;
+}
+
+h3 {
+	font-family: 'Nunito', sans-serif;
+	font-weight: normal;
+	font-size: 26px;
+	margin: 10px 0px 10px 0px;
+	color: #333;
+	word-spacing: 2px;
+}
+h4 {
+	font-family: 'Nunito', sans-serif;
+	font-weight: normal;
+	font-size: 22px;
+	margin: 10px 0px 10px 0px;
+	color: #333;
+	word-spacing: 2px;
+}
+
+h5 {
+	font-family: 'Nunito', sans-serif;
+	font-weight: normal;
+	font-size: 18px;
+	margin: 10px 0px 10px 0px;
+	color: #111;
+	word-spacing: 2px;
+}
+
+p, li {
+	color: #444;
+}
+
+a {
+	color: #DE3737;
+}
+
+.container {
+	margin: 0px auto 0px auto;
+	width: 960px;
+}
+
+#header {
+	background: #333;
+	width: 100%;
+}
+
+#headersub {
+	color: #ccc;
+	width: 960px;
+	margin: 0px auto 0px auto;
+	padding: 20px 0px 20px 0px;
+}
+
+.chart {
+	width: 480px;
+}
+.lol {
+	font-size: 16px;
+	color: #888;
+	font-style: italic;
+}
+.sep {
+	height: 1px;
+	width: 100%;
+	background: #999;
+	margin: 20px 0px 20px 0px;
+}
+.footer{
+	font-size: 16px;
+}
+.latex {
+	width: 100%;
+}
+
+.latex img {
+	display: block;
+	margin: 0px auto 0px auto;
+}
+
+pre {
+	font-family: 'Droid Sans Mono';
+	font-size: 14px;
+}
+
+td img {
+  vertical-align: middle;
+}
+
+#contents a {
+}
+</style>
+<script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+</script>
+</head>
+<body>
+<div id="header" >
+<div id="headersub">
+<h1><span style="color: #FFFFFF">Mingjun Xie</span></h1>
+<h5><span style="color: #DE3737">mxie33</span></h5>
+<h5><span style="color: #DE3737">903074907</span></h5>
+</div>
+</div>
+<div class="container">
+
+<h2>Project 1: Image Filtering and Hybrid Images</h2>
+
+<div style="float: right; padding: 20px">
+<img src="hi_saiki_3.jpg" />
+<p style="font-size: 14px">Example of a hybrid image.</p>
+</div>
+
+<h3>Image filtering write up content</h3>
+
+<ol>
+<li>Image filtering algorithm description</li>
+<li>Image filtering results with different filters</li>
+<li>Hybrid image results with a specific cutoff frequency</li>
+</ol>
+
+<h3>Image filtering algorithm description</h3>
+<p>The image filtering algorithm first add padding to the size m*n image regarding the filtering size. The padding size is taking the floor of the half of the filter size.</p>
+<h5>Padding options:</h5>
+<ol>
+<li>"zero": set all pixels outside the source image to 0 (a good choice for alpha-matted cutout
+images)</li> 
+<li>"clamp": (replicate or clamp to edge): repeat edge pixels indefinitely</li>
+<li>"mirror": reflect pixels across the image edge</li>
+<li>(cyclic) wrap (repeat or tile): loop “around” the image in a “toroidal” configuration</li>
+(Reference: Computer Vision: Algorithms and Applications by Richard Szeliski)
+</ol>
+<p>Then we get a padded image of size (m + floor(filter row size/2))*(n + floor(filter column size/2)). Now we iterate through the matrix for each r,g,b layer, row and column to computer the new value for each pixel based on filter values. For each pixel, the algorithm gets the neighbourhood of the pixel and then element-wise mutiply with the filter matrix and take the sum of the product result to be the value of that pixel.</p>
+
+<div style="clear:both"></div>
+<h4>code sample explanations</h4>
+<pre><code>
+%example code
+fSize = size(filter);
+pSize = floor(fSize ./2);
+output = image;
+paddedImg = mirrorPad(image,pSize);
+[length,height,layers] = size(image);
+
+for layer=1:layers
+    for i = 1:length
+        for j = 1:height
+            g = paddedImg(i:i+fSize(1)-1,j:j+fSize(2)-1,layer); % g is the window or neighbourhood
+            output(i,j,layer) = reshape(g',1,[])*reshape(filter',1,[])';
+        end
+    end
+end
+</code></pre>
+<p>For calculating each value of pixel, I first flattened the neighbourhood matrix x*y into 1*(x+y) and filter matrix into (x+y)*1. Then the product of those two flattened matrix will automatically give us the sum of the element-wise product which is a scalar.</p>
+
+<pre><code>
+% padding functions
+function output = zeroPad(image,pSize)
+output = padarray(image,pSize);
+end
+
+% clamp
+function output = repeatPad(image,pSize)
+output = padarray(image,pSize,'replicate');
+end
+
+% cyclic wrap
+function output = cyclicPad(image,pSize)
+output = padarray(image,pSize,'circular');
+end
+
+function output = mirrorPad(image,pSize)
+output = padarray(image,pSize,'symmetric');
+end
+</code></pre>
+
+<p>Here I use the built-in matlab function padarray to pad the image instead of using loops to add the boundaries because it makes my code looks clean and straight forward.</p>
+
+<h3>Image filtering results</h3>
+<p>The result is using cyclic padding.</p>
+<table border=1>
+<tr>
+<td><p>Identity filter</p></td>
+<td><p>Small blur with a box filter</p></td>
+<td><p>Large blur filter</p></td>
+<td><p>Oriented filter(sobel operator)</p></td>
+<td><p>Hige pass filter(discrete laplacian)</p></td>
+<td><p>High pass "filter" alternative(subtract low frequency content from identity image)</p></td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/bike/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bike/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/bike/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bike/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bike/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bike/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/bird/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bird/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/bird/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bird/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bird/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/bird/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/cat/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/cat/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/cat/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/cat/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/cat/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/cat/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/dog/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/dog/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/dog/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/dog/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/dog/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/dog/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/einstein/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/einstein/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/einstein/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/einstein/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/einstein/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/einstein/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/fish/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/fish/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/fish/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/fish/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/fish/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/fish/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/marilyn/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/motocycle/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/6.jpg" width="154px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/plane/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/plane/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/plane/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/plane/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/plane/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/plane/6.jpg" width="154px"/>
+</td>
+
+<tr>
+<td>
+<img src="image_filter/submarine/1.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/submarine/2.jpg"  width="154px"/>
+</td>
+<td>
+<img src="image_filter/submarine/3.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/submarine/4.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/submarine/5.jpg" width="154px"/>
+</td>
+<td>
+<img src="image_filter/submarine/6.jpg" width="154px"/>
+</td>
+</tr>
+
+</table>
+
+<h3>Image filtering results with different padding</h3>
+<p>here we only use the large blur image as an example to see what's the difference using different padding</p>
+<table border=1>
+<tr>
+<td><p>zero padding</p></td>
+<td><p>cyclic padding</p></td>
+<td><p>replicate padding</p></td>
+<td><p>mirror padding</p></td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/bike/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/bike/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/bike/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/bike/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/bird/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/bird/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/bird/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/bird/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/cat/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/cat/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/cat/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/cat/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/dog/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/dog/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/dog/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/dog/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/einstein/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/einstein/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/einstein/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/einstein/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/fish/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/fish/3.jpg"  width="230px"/>
+</td>
+<td>
+<img src="image_filter/fish/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/fish/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+<td>
+<img src="image_filter/marilyn/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/marilyn/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+
+<td>
+<img src="image_filter/motocycle/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/motocycle/3m.jpg" width="230px"/>
+</td>
+</tr>
+
+<tr>
+
+<td>
+<img src="image_filter/plane/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/plane/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/plane/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/plane/3m.jpg" width="230px"/>
+</td>
+
+<tr>
+
+<td>
+<img src="image_filter/submarine/3z.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/submarine/3.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/submarine/3r.jpg" width="230px"/>
+</td>
+<td>
+<img src="image_filter/submarine/3m.jpg" width="230px"/>
+</td>
+</tr>
+</table>
+
+<p>For complex picture such as the dog and cat picture, mirror and replicate padding works the best because the boundary is blurred into the background color, which is not obvious to see the boundry. The thrid best padding is cyclic padding, from where we can still notice there's a padding of complex picture since there is still noticible difference between the top and the bottom row of pixels for example in the bicycle picture. And the zero padding only works with black background.</p>
+<h3>Hybrid image result example with different cutoff frequency</h3>
+<p> Here we use the exmaple of the dog cat hybrid image with circular padding</p>
+<table border=1>
+<tr>
+<td>cut-off frequency</td>
+<td>high frequencies</td>
+<td>low frequencies</td>
+<td>hybrid image</td>
+<td>hybrid image with different scales</td>
+</tr>
+
+<tr>
+<td>1</td>
+<td>
+<img src="hybrid_result/dogcat/1/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/1/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/1/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/1/hybrid_image_scales.jpg" width="350px"/>
+</td>
+</tr>
+
+<tr>
+<td>3</td>
+<td>
+<img src="hybrid_result/dogcat/3/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/3/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/3/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/3/hybrid_image_scales.jpg" width="350px"/>
+</td>
+</tr>
+
+<tr>
+<td>5</td>
+<td>
+<img src="hybrid_result/dogcat/5/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/5/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/5/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/5/hybrid_image_scales.jpg" width="350px"/>
+</td>
+</tr>
+
+<tr>
+<td>7</td>
+<td>
+<img src="hybrid_result/dogcat/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/hybrid_image_scales.jpg" width="350px"/>
+</td>
+</tr>
+
+<tr>
+<td>9</td>
+<td>
+<img src="hybrid_result/dogcat/9/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/9/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/9/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/9/hybrid_image_scales.jpg" width="350px"/>
+</td>
+</tr>
+</table>
+<p>From the low cut-off frequency to high cut-off frequency (the standard deviation), we can see that the high frequency picture becomes clearer and the low frequency picture becomes blurrer because the filter rejects the pixels with higher standard deviation.</p>
+
+<h3>Hybrid image results with a specific cutoff frequency</h3>
+<p>here we use the circular padding and by trying different cutoff frequency, I found the relatively better cutoff frequency for each hybrid images</p>
+<table border=1>
+<tr>
+<td>high frequencies</td>
+<td>low frequencies</td>
+<td>hybrid image</td>
+<td>hybrid image with different scales</td>
+<td>cut-off frequency</td>
+</tr>
+<tr>
+<td>
+<img src="hybrid_result/birdplane/1.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/birdplane/2.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/birdplane/3.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/birdplane/4.jpg" width="350px"/>
+</td>
+<td>4</td>
+</tr>
+
+<tr>
+<td>
+<img src="hybrid_result/dogcat/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/dogcat/hybrid_image_scales.jpg" width="350px"/>
+</td>
+<td>7</td>
+</tr>
+
+<tr>
+<td>
+<img src="hybrid_result/einsteinmarilyn/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/einsteinmarilyn/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/einsteinmarilyn/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/einsteinmarilyn/hybrid_image_scales.jpg" width="350px"/>
+</td>
+<td>3</td>
+</tr>
+
+<tr>
+<td>
+<img src="hybrid_result/fishsubmarine/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/fishsubmarine/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/fishsubmarine/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/fishsubmarine/hybrid_image_scales.jpg" width="350px"/>
+</td>
+<td>8</td>
+</tr>
+
+<tr>
+<td>
+<img src="hybrid_result/bikemotor/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/bikemotor/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/bikemotor/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/bikemotor/hybrid_image_scales.jpg" width="350px"/>
+</td>
+<td>8</td>
+</tr>
+</table>
+
+<h3>Some random hybrid images</h3>
+<p>The picture sources are from internet (google images).</p>
+<table border=1>
+<tr>
+<td>high frequencies</td>
+<td>low frequencies</td>
+<td>hybrid image</td>
+<td>hybrid image with different scales</td>
+<td>cut-off frequency</td>
+</tr>
+<tr>
+<td>
+<img src="hybrid_result/hillarytrump/high_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/hillarytrump/low_frequencies.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/hillarytrump/hybrid_image.jpg" width="200px"/>
+</td>
+<td>
+<img src="hybrid_result/hillarytrump/hybrid_image_scales.jpg" width="350px"/>
+</td>
+<td>5</td>
+</tr>
+
+<tr>
+<td>
+<img src="hf_saiki_3.jpg" width="200px"/>
+</td>
+<td>
+<img src="lf_saiki_3.jpg" width="200px"/>
+</td>
+<td>
+<img src="hi_saiki_3.jpg" width="200px"/>
+</td>
+<td>
+<img src="hi_scales_saiki_3.jpg" width="350px"/>
+</td>
+<td>3</td>
+</tr>
+</table>
+<div style="clear:both">
+<p>Contact info</p>
+<p>Mingjun Xie</p>
+<p>email: mxie33@gatech.edu</p>
+<p>Thanks for reading the report!</p>
+</div>
+</body>
+</html>
